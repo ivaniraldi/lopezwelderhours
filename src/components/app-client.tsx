@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
+import Image from 'next/image';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import { WorkEntry, Settings } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -17,7 +18,6 @@ import { es } from 'date-fns/locale';
 import { v4 as uuidv4 } from 'uuid';
 import { durationInHours, formatCurrency, formatDuration } from '@/lib/utils';
 import { Clock, History, BarChart2, Settings as SettingsIcon, Trash2, Edit, Plus, Share2, Download, Upload, FileDown, MoreVertical, Check } from 'lucide-react';
-import { Logo } from '@/components/icons/logo';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import Link from 'next/link';
 import { Skeleton } from './ui/skeleton';
@@ -42,6 +42,7 @@ export default function AppClient() {
   const [entries, setEntries] = useLocalStorage<WorkEntry[]>('lopez-welder-entries', []);
   const [settings, setSettings] = useLocalStorage<Settings>('lopez-welder-settings', { hourlyRate: 100 });
   const [now, setNow] = useState<Date | null>(null);
+  const [activeTab, setActiveTab] = useState('Hoy');
 
   useEffect(() => {
     // This runs only on the client, after hydration
@@ -116,14 +117,11 @@ export default function AppClient() {
   return (
     <div className="flex flex-col h-screen p-2 md:p-4">
       <header className="flex items-center justify-between p-2 mb-4">
-        <div className="flex items-center gap-3">
-          <Logo className="w-8 h-8 text-primary" />
-          <h1 className="text-2xl font-bold text-white tracking-wider">Lopez<span className="text-primary">Welder</span></h1>
-        </div>
+        <Image src="https://i.imgur.com/I1zaXBD.png" alt="LopezWelder Logo" width={200} height={45} priority />
       </header>
       
       <main className="flex-grow overflow-y-auto no-scrollbar pb-16 md:pb-0">
-        <Tabs defaultValue="Hoy" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="hidden md:grid w-full grid-cols-4 bg-black/20 backdrop-blur-md border border-white/10">
                 {TABS.map(tab => <TabsTrigger key={tab.name} value={tab.name}>{tab.name}</TabsTrigger>)}
             </TabsList>
@@ -137,7 +135,7 @@ export default function AppClient() {
 
       {/* Bottom Nav for Mobile */}
       <footer className="md:hidden fixed bottom-0 left-0 right-0 bg-black/30 backdrop-blur-lg border-t border-white/10 p-1 z-50">
-          <Tabs defaultValue="Hoy" className="w-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-4 h-16 bg-transparent p-0">
                {TABS.map(tab => (
                  <TabsTrigger key={tab.name} value={tab.name} className="flex-col h-full gap-1 text-xs data-[state=active]:bg-primary/20 data-[state=active]:text-primary">

@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Toaster } from "@/components/ui/toaster"
 import './globals.css';
 
-const APP_NAME = "LopezWelder PWA";
+const APP_NAME = "LopezWelder";
 const APP_DESCRIPTION = "App para registro de horas de trabajo para soldadores.";
 
 export const metadata: Metadata = {
@@ -17,6 +17,10 @@ export const metadata: Metadata = {
   formatDetection: {
     telephone: false,
   },
+  icons: {
+    icon: "https://i.imgur.com/I1zaXBD.png",
+    apple: "https://i.imgur.com/I1zaXBD.png",
+  }
 };
 
 export const viewport: Viewport = {
