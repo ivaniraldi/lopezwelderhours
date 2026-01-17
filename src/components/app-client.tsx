@@ -5,10 +5,10 @@ import { useLocalStorage } from '@/hooks/use-local-storage';
 import { WorkEntry, Settings } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
@@ -16,7 +16,7 @@ import { format, parseISO, isValid, startOfWeek, endOfWeek, startOfMonth, endOfM
 import { es } from 'date-fns/locale';
 import { v4 as uuidv4 } from 'uuid';
 import { durationInHours, formatCurrency, formatDuration } from '@/lib/utils';
-import { Clock, History, BarChart2, Settings as SettingsIcon, Trash2, Edit, Play, StopCircle, Plus, Share2, Download, Upload, FileDown, MoreVertical } from 'lucide-react';
+import { Clock, History, BarChart2, Settings as SettingsIcon, Trash2, Edit, Plus, Share2, Download, Upload, FileDown, MoreVertical } from 'lucide-react';
 import { Logo } from '@/components/icons/logo';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import Link from 'next/link';
@@ -38,35 +38,8 @@ GlassCard.displayName = "GlassCard";
 export default function AppClient() {
   const { toast } = useToast();
   const [entries, setEntries] = useLocalStorage<WorkEntry[]>('lopez-welder-entries', []);
-  const [settings, setSettings] = useLocalStorage<Settings>('lopez-welder-settings', { hourlyRate: 0 });
-  const [activeJob, setActiveJob] = useLocalStorage<WorkEntry | null>('lopez-welder-active-job', null);
-  const [now, setNow] = useState<Date | null>(null);
-
-  useEffect(() => {
-    setNow(new Date());
-    const timer = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const handleStart = () => {
-    if (activeJob) return;
-    const newJob: WorkEntry = {
-      id: crypto.randomUUID(),
-      start: new Date().toISOString(),
-      end: '',
-    };
-    setActiveJob(newJob);
-    toast({ title: "Jornada iniciada", description: "¡A darle con todo!" });
-  };
-
-  const handleEnd = () => {
-    if (!activeJob) return;
-    const finalJob = { ...activeJob, end: new Date().toISOString() };
-    setEntries(prev => [finalJob, ...prev].sort((a, b) => new Date(b.start).getTime() - new Date(a.start).getTime()));
-    setActiveJob(null);
-    toast({ title: "Jornada finalizada", description: "¡Buen trabajo! Descansa." });
-  };
-
+  const [settings, setSettings] = useLocalStorage<Settings>('lopez-welder-settings', { hourlyRate: 100 });
+  
   const handleDelete = (id: string) => {
     setEntries(prev => prev.filter(entry => entry.id !== id));
     toast({ title: "Registro eliminado", variant: "destructive" });
@@ -126,9 +99,9 @@ export default function AppClient() {
   const sortedEntries = useMemo(() => entries.slice().sort((a, b) => new Date(b.start).getTime() - new Date(a.start).getTime()), [entries]);
   
   const TABS = [
-    { name: 'Hoy', icon: Clock, content: <TodayTab activeJob={activeJob} now={now} onStart={handleStart} onEnd={handleEnd} entries={sortedEntries} settings={settings} /> },
+    { name: 'Hoy', icon: Clock, content: <TodayTab onSave={handleSaveEntry} entries={sortedEntries} settings={settings} /> },
     { name: 'Historial', icon: History, content: <HistoryTab entries={sortedEntries} onDelete={handleDelete} onSave={handleSaveEntry} settings={settings} /> },
-    { name: 'Reportes', icon: BarChart2, content: <ReportsTab entries={sortedEntries} settings={settings} now={now} /> },
+    { name: 'Reportes', icon: BarChart2, content: <ReportsTab entries={sortedEntries} settings={settings} now={new Date()} /> },
     { name: 'Ajustes', icon: SettingsIcon, content: <SettingsTab settings={settings} setSettings={setSettings} onExport={handleExport} onImport={handleImport} /> },
   ];
   
@@ -171,48 +144,76 @@ export default function AppClient() {
   );
 }
 
-const TodayTab = ({ activeJob, now, onStart, onEnd, entries, settings }: { activeJob: WorkEntry | null, now: Date | null, onStart: () => void, onEnd: () => void, entries: WorkEntry[], settings: Settings }) => {
-    const todayEntries = entries.filter(e => now && format(parseISO(e.start), 'yyyy-MM-dd') === format(now, 'yyyy-MM-dd'));
-    const totalHoursToday = todayEntries.reduce((acc, e) => acc + durationInHours(parseISO(e.start), parseISO(e.end)), 0);
+const TodayTab = ({ onSave, entries, settings }: { onSave: (entry: WorkEntry) => void, entries: WorkEntry[], settings: Settings }) => {
+    const { toast } = useToast();
+    const [start, setStart] = useState('');
+    const [end, setEnd] = useState('');
+
+    const handleSubmit = () => {
+        const startDate = parseISO(start);
+        const endDate = parseISO(end);
+        if (!isValid(startDate) || !isValid(endDate) || startDate > endDate) {
+            toast({
+                variant: 'destructive',
+                title: 'Fechas inválidas',
+                description: 'Revisa las fechas y horas ingresadas.',
+            });
+            return;
+        }
+        onSave({
+            id: crypto.randomUUID(),
+            start: startDate.toISOString(),
+            end: endDate.toISOString(),
+        });
+        setStart('');
+        setEnd('');
+        toast({ title: 'Registro añadido', description: 'Tu jornada ha sido guardada.' });
+    };
+
+    const today = new Date();
+    const todayEntries = entries.filter(e => {
+        const entryDate = parseISO(e.start);
+        return isValid(entryDate) && format(entryDate, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd');
+    });
+
+    const totalHoursToday = todayEntries.reduce((acc, e) => {
+        const entryStart = parseISO(e.start);
+        const entryEnd = parseISO(e.end);
+        if (isValid(entryStart) && isValid(entryEnd)) {
+            return acc + durationInHours(entryStart, entryEnd);
+        }
+        return acc;
+    }, 0);
 
     return (
         <div className="space-y-4">
             <GlassCard>
                 <CardHeader>
-                    <CardTitle className="text-center text-lg font-medium">{now ? format(now, "eeee, d 'de' MMMM", { locale: es }) : <>&nbsp;</>}</CardTitle>
+                    <CardTitle>Añadir Jornada</CardTitle>
+                    <CardDescription>Ingresa la hora de inicio y fin de tu trabajo.</CardDescription>
                 </CardHeader>
-                <CardContent className="flex flex-col items-center justify-center gap-4">
-                    <div className="text-6xl font-bold font-mono text-white">
-                        {now ? format(now, "HH:mm:ss") : "00:00:00"}
+                <CardContent className="space-y-4">
+                    <div>
+                        <Label htmlFor="start-time-today">Inicio</Label>
+                        <Input id="start-time-today" type="datetime-local" value={start} onChange={e => setStart(e.target.value)} />
                     </div>
-                    {activeJob ? (
-                        <div className="text-center">
-                            <p className="text-accent">Jornada en curso</p>
-                            <p className="text-sm text-muted-foreground">Iniciada a las {format(parseISO(activeJob.start), "HH:mm")}</p>
-                            <p className="text-lg font-semibold mt-2">{now ? formatDuration(parseISO(activeJob.start), now) : '...'}</p>
-                        </div>
-                    ) : (
-                        <p className="text-muted-foreground">No hay jornada activa</p>
-                    )}
+                    <div>
+                        <Label htmlFor="end-time-today">Fin</Label>
+                        <Input id="end-time-today" type="datetime-local" value={end} onChange={e => setEnd(e.target.value)} />
+                    </div>
                 </CardContent>
-                <CardFooter className="flex justify-center">
-                    {activeJob ? (
-                        <Button onClick={onEnd} size="lg" className="bg-destructive hover:bg-destructive/80 text-destructive-foreground w-full">
-                            <StopCircle className="mr-2"/>
-                            Finalizar Jornada
-                        </Button>
-                    ) : (
-                        <Button onClick={onStart} size="lg" className="bg-primary hover:bg-primary/80 w-full">
-                            <Play className="mr-2"/>
-                            Iniciar Jornada
-                        </Button>
-                    )}
+                <CardFooter>
+                    <Button onClick={handleSubmit} className="w-full">
+                        <Plus className="mr-2" />
+                        Guardar Jornada
+                    </Button>
                 </CardFooter>
             </GlassCard>
 
             <GlassCard>
                 <CardHeader>
                     <CardTitle>Resumen del Día</CardTitle>
+                    <CardDescription>{format(today, "eeee, d 'de' MMMM", { locale: es })}</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="flex justify-around text-center">
@@ -230,6 +231,7 @@ const TodayTab = ({ activeJob, now, onStart, onEnd, entries, settings }: { activ
         </div>
     );
 };
+
 
 const HistoryTab = ({ entries, onDelete, onSave, settings }: { entries: WorkEntry[], onDelete: (id: string) => void, onSave: (entry: WorkEntry) => void, settings: Settings }) => {
   return (
@@ -369,15 +371,14 @@ const EditEntryDialog = ({ entry, onSave, triggerButton }: { entry?: WorkEntry, 
     );
 };
 
-const ReportsTab = ({ entries, settings, now: propNow }: { entries: WorkEntry[], settings: Settings, now: Date | null }) => {
+const ReportsTab = ({ entries, settings, now }: { entries: WorkEntry[], settings: Settings, now: Date | null }) => {
   const [reportType, setReportType] = useState('semanal');
 
   const getReportData = (type: string) => {
-    if (!propNow) {
+    if (!now) {
         return { totalHours: 0, totalEarnings: 0, periodLabel: 'Cargando...', periodEntries: [] };
     }
 
-    const now = propNow;
     let periodEntries, periodLabel;
     const weekStart = startOfWeek(now, { weekStartsOn: 1 });
     const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
@@ -481,7 +482,7 @@ const SettingsTab = ({ settings, setSettings, onExport, onImport }: { settings: 
                 <CardContent>
                     <div className="flex items-center gap-2">
                         <span className="text-xl font-semibold">$</span>
-                        <Input type="number" value={settings.hourlyRate} onChange={handleRateChange} placeholder="e.g., 2500" className="text-lg" />
+                        <Input type="number" value={settings.hourlyRate} onChange={handleRateChange} placeholder="e.g., 100" className="text-lg" />
                         <span className="text-muted-foreground">/ hora</span>
                     </div>
                 </CardContent>
