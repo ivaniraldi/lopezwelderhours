@@ -17,9 +17,8 @@ import { format, parseISO, isValid, startOfWeek, endOfWeek, startOfMonth, endOfM
 import { ptBR } from 'date-fns/locale';
 import { v4 as uuidv4 } from 'uuid';
 import { durationInHours, formatCurrency, formatDuration } from '@/lib/utils';
-import { Clock, History, BarChart2, Settings as SettingsIcon, Trash2, Edit, Plus, Share2, Download, Upload, FileDown, MoreVertical, Check } from 'lucide-react';
+import { Clock, History, BarChart2, Settings as SettingsIcon, Trash2, Edit, Plus, Share2, Download, Upload, MoreVertical, Check } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
-import Link from 'next/link';
 import { Skeleton } from './ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
@@ -117,7 +116,7 @@ export default function AppClient() {
   return (
     <div className="flex flex-col h-screen p-2 md:p-4">
       <header className="flex items-center justify-between">
-        <Image src="https://i.imgur.com/ob3PeYk.png" alt="LopezWelder Logo" width={150} height={32} priority />
+        <Image src="https://i.imgur.com/I1zaXBD.png" alt="LopezWelder Logo" width={100} height={21} priority />
       </header>
       
       <main className="flex-grow overflow-y-auto no-scrollbar pb-16 md:pb-0" >
@@ -516,8 +515,6 @@ const ReportsTab = ({ entries, settings, now }: { entries: WorkEntry[], settings
     window.open(whatsappUrl, '_blank');
   };
 
-  const queryParams = new URLSearchParams({ type: reportType, rate: String(settings.hourlyRate) }).toString();
-
 
   return (
     <div className="space-y-4">
@@ -547,9 +544,6 @@ const ReportsTab = ({ entries, settings, now }: { entries: WorkEntry[], settings
             </div>
         </CardContent>
         <CardFooter className="flex justify-end gap-2">
-            <Link href={`/print?${queryParams}`} target="_blank">
-              <Button variant="outline"><FileDown className="mr-2"/>PDF</Button>
-            </Link>
             <Button onClick={handleShare}><Share2 className="mr-2"/>WhatsApp</Button>
         </CardFooter>
       </GlassCard>
