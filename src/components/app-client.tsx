@@ -20,6 +20,7 @@ import { Clock, History, BarChart2, Settings as SettingsIcon, Trash2, Edit, Plus
 import { Logo } from '@/components/icons/logo';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import Link from 'next/link';
+import { Skeleton } from './ui/skeleton';
 
 // Polyfill for uuid if not globally available
 if (typeof window !== 'undefined' && !window.crypto) {
@@ -39,6 +40,12 @@ export default function AppClient() {
   const { toast } = useToast();
   const [entries, setEntries] = useLocalStorage<WorkEntry[]>('lopez-welder-entries', []);
   const [settings, setSettings] = useLocalStorage<Settings>('lopez-welder-settings', { hourlyRate: 100 });
+  const [now, setNow] = useState<Date | null>(null);
+
+  useEffect(() => {
+    // This runs only on the client, after hydration
+    setNow(new Date());
+  }, []);
   
   const handleDelete = (id: string) => {
     setEntries(prev => prev.filter(entry => entry.id !== id));
@@ -99,9 +106,9 @@ export default function AppClient() {
   const sortedEntries = useMemo(() => entries.slice().sort((a, b) => new Date(b.start).getTime() - new Date(a.start).getTime()), [entries]);
   
   const TABS = [
-    { name: 'Hoy', icon: Clock, content: <TodayTab onSave={handleSaveEntry} entries={sortedEntries} settings={settings} /> },
+    { name: 'Hoy', icon: Clock, content: <TodayTab onSave={handleSaveEntry} entries={sortedEntries} settings={settings} now={now} /> },
     { name: 'Historial', icon: History, content: <HistoryTab entries={sortedEntries} onDelete={handleDelete} onSave={handleSaveEntry} settings={settings} /> },
-    { name: 'Reportes', icon: BarChart2, content: <ReportsTab entries={sortedEntries} settings={settings} now={new Date()} /> },
+    { name: 'Reportes', icon: BarChart2, content: <ReportsTab entries={sortedEntries} settings={settings} now={now} /> },
     { name: 'Ajustes', icon: SettingsIcon, content: <SettingsTab settings={settings} setSettings={setSettings} onExport={handleExport} onImport={handleImport} /> },
   ];
   
@@ -144,7 +151,7 @@ export default function AppClient() {
   );
 }
 
-const TodayTab = ({ onSave, entries, settings }: { onSave: (entry: WorkEntry) => void, entries: WorkEntry[], settings: Settings }) => {
+const TodayTab = ({ onSave, entries, settings, now }: { onSave: (entry: WorkEntry) => void, entries: WorkEntry[], settings: Settings, now: Date | null }) => {
     const { toast } = useToast();
     const [start, setStart] = useState('');
     const [end, setEnd] = useState('');
@@ -170,7 +177,35 @@ const TodayTab = ({ onSave, entries, settings }: { onSave: (entry: WorkEntry) =>
         toast({ title: 'Registro añadido', description: 'Tu jornada ha sido guardada.' });
     };
 
-    const today = new Date();
+    if (!now) {
+        return (
+            <div className="space-y-4">
+                 <GlassCard>
+                    <CardHeader>
+                        <CardTitle>Añadir Jornada</CardTitle>
+                        <CardDescription>Ingresa la hora de inicio y fin de tu trabajo.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Skeleton className="h-32 w-full" />
+                    </CardContent>
+                    <CardFooter>
+                        <Skeleton className="h-10 w-full" />
+                    </CardFooter>
+                </GlassCard>
+                <GlassCard>
+                    <CardHeader>
+                        <CardTitle>Resumen del Día</CardTitle>
+                        <CardDescription><Skeleton className="h-4 w-32" /></CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Skeleton className="h-16 w-full" />
+                    </CardContent>
+                </GlassCard>
+            </div>
+        )
+    }
+
+    const today = now;
     const todayEntries = entries.filter(e => {
         const entryDate = parseISO(e.start);
         return isValid(entryDate) && format(entryDate, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd');
