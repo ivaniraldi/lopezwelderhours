@@ -12,11 +12,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger, AlertDialogFooter } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { format, parseISO, isValid, startOfWeek, endOfWeek, startOfMonth, endOfMonth, getDay, isWithinInterval, startOfToday, formatISO } from 'date-fns';
+import { format, parseISO, isValid, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, startOfToday, formatISO, startOfMinute } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { v4 as uuidv4 } from 'uuid';
 import { durationInHours, formatCurrency, formatDuration } from '@/lib/utils';
-import { Clock, History, BarChart2, Settings as SettingsIcon, Trash2, Edit, Plus, Share2, Download, Upload, FileDown, MoreVertical } from 'lucide-react';
+import { Clock, History, BarChart2, Settings as SettingsIcon, Trash2, Edit, Plus, Share2, Download, Upload, FileDown, MoreVertical, Check } from 'lucide-react';
 import { Logo } from '@/components/icons/logo';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import Link from 'next/link';
@@ -122,7 +122,7 @@ export default function AppClient() {
         </div>
       </header>
       
-      <main className="flex-grow overflow-y-auto pb-16 md:pb-0">
+      <main className="flex-grow overflow-y-auto no-scrollbar pb-16 md:pb-0">
         <Tabs defaultValue="Hoy" className="w-full">
             <TabsList className="hidden md:grid w-full grid-cols-4 bg-black/20 backdrop-blur-md border border-white/10">
                 {TABS.map(tab => <TabsTrigger key={tab.name} value={tab.name}>{tab.name}</TabsTrigger>)}
@@ -154,13 +154,34 @@ export default function AppClient() {
 
 const TodayTab = ({ onSave, entries, settings, now }: { onSave: (entry: WorkEntry) => void, entries: WorkEntry[], settings: Settings, now: Date | null }) => {
     const { toast } = useToast();
-    const [start, setStart] = useState('');
-    const [end, setEnd] = useState('');
+    const [date, setDate] = useState(now ? format(now, 'yyyy-MM-dd') : '');
+    const [startTime, setStartTime] = useState('');
+    const [endTime, setEndTime] = useState('');
+
+    useEffect(() => {
+        if (now && !date) {
+            setDate(format(now, 'yyyy-MM-dd'));
+        }
+    }, [now, date]);
 
     const handleSubmit = () => {
-        const startDate = parseISO(start);
-        const endDate = parseISO(end);
-        if (!isValid(startDate) || !isValid(endDate) || startDate > endDate) {
+        if (!date || !startTime || !endTime) {
+            toast({
+                variant: 'destructive',
+                title: 'Campos incompletos',
+                description: 'Por favor, completa la fecha y las horas.',
+            });
+            return;
+        }
+
+        let startDate = startOfMinute(new Date(`${date}T${startTime}`));
+        let endDate = startOfMinute(new Date(`${date}T${endTime}`));
+
+        if (endDate < startDate) {
+            endDate.setDate(endDate.getDate() + 1);
+        }
+
+        if (!isValid(startDate) || !isValid(endDate)) {
             toast({
                 variant: 'destructive',
                 title: 'Fechas inválidas',
@@ -168,13 +189,14 @@ const TodayTab = ({ onSave, entries, settings, now }: { onSave: (entry: WorkEntr
             });
             return;
         }
+
         onSave({
             id: crypto.randomUUID(),
             start: startDate.toISOString(),
             end: endDate.toISOString(),
         });
-        setStart('');
-        setEnd('');
+        setStartTime('');
+        setEndTime('');
         toast({ title: 'Registro añadido', description: 'Tu jornada ha sido guardada.' });
     };
 
@@ -184,10 +206,14 @@ const TodayTab = ({ onSave, entries, settings, now }: { onSave: (entry: WorkEntr
                  <GlassCard>
                     <CardHeader>
                         <CardTitle>Añadir Jornada</CardTitle>
-                        <CardDescription>Ingresa la hora de inicio y fin de tu trabajo.</CardDescription>
+                        <CardDescription>Ingresa la fecha, hora de inicio y fin de tu trabajo.</CardDescription>
                     </CardHeader>
-                    <CardContent>
-                        <Skeleton className="h-32 w-full" />
+                    <CardContent className="space-y-4">
+                        <Skeleton className="h-10 w-full" />
+                        <div className="grid grid-cols-2 gap-4">
+                          <Skeleton className="h-10 w-full" />
+                          <Skeleton className="h-10 w-full" />
+                        </div>
                     </CardContent>
                     <CardFooter>
                         <Skeleton className="h-10 w-full" />
@@ -206,10 +232,9 @@ const TodayTab = ({ onSave, entries, settings, now }: { onSave: (entry: WorkEntr
         )
     }
 
-    const today = now;
     const todayEntries = entries.filter(e => {
         const entryDate = parseISO(e.start);
-        return isValid(entryDate) && format(entryDate, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd');
+        return isValid(entryDate) && format(entryDate, 'yyyy-MM-dd') === format(now, 'yyyy-MM-dd');
     });
 
     const totalHoursToday = todayEntries.reduce((acc, e) => {
@@ -226,16 +251,22 @@ const TodayTab = ({ onSave, entries, settings, now }: { onSave: (entry: WorkEntr
             <GlassCard>
                 <CardHeader>
                     <CardTitle>Añadir Jornada</CardTitle>
-                    <CardDescription>Ingresa la hora de inicio y fin de tu trabajo.</CardDescription>
+                    <CardDescription>Ingresa la fecha, hora de inicio y fin de tu trabajo.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <div>
-                        <Label htmlFor="start-time-today">Inicio</Label>
-                        <Input id="start-time-today" type="datetime-local" value={start} onChange={e => setStart(e.target.value)} />
+                     <div>
+                        <Label htmlFor="date-today">Fecha</Label>
+                        <Input id="date-today" type="date" value={date} onChange={e => setDate(e.target.value)} />
                     </div>
-                    <div>
-                        <Label htmlFor="end-time-today">Fin</Label>
-                        <Input id="end-time-today" type="datetime-local" value={end} onChange={e => setEnd(e.target.value)} />
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <Label htmlFor="start-time-today">Hora Inicio</Label>
+                            <Input id="start-time-today" type="time" value={startTime} onChange={e => setStartTime(e.target.value)} />
+                        </div>
+                        <div>
+                            <Label htmlFor="end-time-today">Hora Fin</Label>
+                            <Input id="end-time-today" type="time" value={endTime} onChange={e => setEndTime(e.target.value)} />
+                        </div>
                     </div>
                 </CardContent>
                 <CardFooter>
@@ -249,7 +280,7 @@ const TodayTab = ({ onSave, entries, settings, now }: { onSave: (entry: WorkEntr
             <GlassCard>
                 <CardHeader>
                     <CardTitle>Resumen del Día</CardTitle>
-                    <CardDescription>{format(today, "eeee, d 'de' MMMM", { locale: es })}</CardDescription>
+                    <CardDescription>{format(now, "eeee, d 'de' MMMM", { locale: es })}</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="flex justify-around text-center">
@@ -277,7 +308,7 @@ const HistoryTab = ({ entries, onDelete, onSave, settings }: { entries: WorkEntr
         <EditEntryDialog onSave={onSave} triggerButton={<Button size="sm"><Plus className="mr-2" />Añadir</Button>} />
       </CardHeader>
       <CardContent>
-        <div className="max-h-[60vh] overflow-y-auto">
+        <div className="max-h-[60vh] overflow-y-auto no-scrollbar">
           <Table>
             <TableHeader className="sticky top-0 bg-black/50 backdrop-blur-xl">
               <TableRow>
@@ -345,16 +376,32 @@ const HistoryTab = ({ entries, onDelete, onSave, settings }: { entries: WorkEntr
 };
 
 const EditEntryDialog = ({ entry, onSave, triggerButton }: { entry?: WorkEntry, onSave: (entry: WorkEntry) => void, triggerButton: React.ReactElement }) => {
-    const [start, setStart] = useState(entry ? format(parseISO(entry.start), "yyyy-MM-dd'T'HH:mm") : '');
-    const [end, setEnd] = useState(entry ? format(parseISO(entry.end), "yyyy-MM-dd'T'HH:mm") : '');
+    const { toast } = useToast();
+    const [date, setDate] = useState('');
+    const [startTime, setStartTime] = useState('');
+    const [endTime, setEndTime] = useState('');
     const [notes, setNotes] = useState(entry?.notes ?? '');
     const [isOpen, setIsOpen] = useState(false);
 
     const handleSubmit = () => {
-        const startDate = parseISO(start);
-        const endDate = parseISO(end);
-        if(!isValid(startDate) || !isValid(endDate) || startDate > endDate) {
-            alert("Fechas inválidas");
+        if (!date || !startTime || !endTime) {
+            toast({
+                variant: 'destructive',
+                title: 'Campos incompletos',
+                description: 'Por favor, completa la fecha y las horas.',
+            });
+            return;
+        }
+
+        let startDate = startOfMinute(new Date(`${date}T${startTime}`));
+        let endDate = startOfMinute(new Date(`${date}T${endTime}`));
+        
+        if (endDate < startDate) {
+            endDate.setDate(endDate.getDate() + 1);
+        }
+
+        if(!isValid(startDate) || !isValid(endDate)) {
+            toast({ variant: 'destructive', title: "Fechas inválidas" });
             return;
         }
         onSave({
@@ -369,8 +416,12 @@ const EditEntryDialog = ({ entry, onSave, triggerButton }: { entry?: WorkEntry, 
     useEffect(() => {
         if (isOpen) {
             const now = new Date();
-            setStart(entry ? format(parseISO(entry.start), "yyyy-MM-dd'T'HH:mm") : format(now, "yyyy-MM-dd'T'HH:mm"));
-            setEnd(entry ? format(parseISO(entry.end), "yyyy-MM-dd'T'HH:mm") : format(now, "yyyy-MM-dd'T'HH:mm"));
+            const startDateTime = entry ? parseISO(entry.start) : now;
+            const endDateTime = entry ? parseISO(entry.end) : now;
+
+            setDate(format(startDateTime, "yyyy-MM-dd"));
+            setStartTime(format(startDateTime, "HH:mm"));
+            setEndTime(format(endDateTime, "HH:mm"));
             setNotes(entry?.notes ?? '');
         }
     }, [isOpen, entry]);
@@ -384,12 +435,18 @@ const EditEntryDialog = ({ entry, onSave, triggerButton }: { entry?: WorkEntry, 
                 </DialogHeader>
                 <div className="space-y-4 py-4">
                     <div>
-                        <Label htmlFor="start-time">Inicio</Label>
-                        <Input id="start-time" type="datetime-local" value={start} onChange={e => setStart(e.target.value)} />
+                        <Label htmlFor="date">Fecha</Label>
+                        <Input id="date" type="date" value={date} onChange={e => setDate(e.target.value)} />
                     </div>
-                    <div>
-                        <Label htmlFor="end-time">Fin</Label>
-                        <Input id="end-time" type="datetime-local" value={end} onChange={e => setEnd(e.target.value)} />
+                     <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <Label htmlFor="start-time">Hora Inicio</Label>
+                            <Input id="start-time" type="time" value={startTime} onChange={e => setStartTime(e.target.value)} />
+                        </div>
+                        <div>
+                            <Label htmlFor="end-time">Hora Fin</Label>
+                            <Input id="end-time" type="time" value={endTime} onChange={e => setEndTime(e.target.value)} />
+                        </div>
                     </div>
                     <div>
                         <Label htmlFor="notes">Notas</Label>
@@ -453,7 +510,7 @@ const ReportsTab = ({ entries, settings, now }: { entries: WorkEntry[], settings
     return { totalHours, totalEarnings, periodLabel, periodEntries };
   };
 
-  const { totalHours, totalEarnings, periodLabel, periodEntries } = getReportData(reportType);
+  const { totalHours, totalEarnings, periodLabel } = getReportData(reportType);
   
   const handleShare = () => {
     const reportText = `*Resumen ${reportType} de LopezWelder*\n_${periodLabel}_\n\n*Horas Totales:* ${totalHours.toFixed(2)}h\n*Ganancias Totales:* ${formatCurrency(totalEarnings)}\n\n¡Un saludo!`;
@@ -504,9 +561,17 @@ const ReportsTab = ({ entries, settings, now }: { entries: WorkEntry[], settings
 
 
 const SettingsTab = ({ settings, setSettings, onExport, onImport }: { settings: Settings, setSettings: (s: Settings) => void, onExport: () => void, onImport: (e: React.ChangeEvent<HTMLInputElement>) => void }) => {
-    const handleRateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setSettings({ ...settings, hourlyRate: parseFloat(e.target.value) || 0 });
+    const { toast } = useToast();
+    const [localRate, setLocalRate] = useState(settings.hourlyRate);
+
+    const handleSave = () => {
+        setSettings({ ...settings, hourlyRate: localRate });
+        toast({ title: "Tarifa guardada" });
     };
+
+    useEffect(() => {
+        setLocalRate(settings.hourlyRate);
+    }, [settings.hourlyRate]);
 
     return (
         <div className="space-y-6">
@@ -517,11 +582,17 @@ const SettingsTab = ({ settings, setSettings, onExport, onImport }: { settings: 
                 </CardHeader>
                 <CardContent>
                     <div className="flex items-center gap-2">
-                        <span className="text-xl font-semibold">$</span>
-                        <Input type="number" value={settings.hourlyRate} onChange={handleRateChange} placeholder="e.g., 100" className="text-lg" />
+                        <span className="text-xl font-semibold">R$</span>
+                        <Input type="number" value={localRate} onChange={e => setLocalRate(parseFloat(e.target.value) || 0)} placeholder="e.g., 100" className="text-lg" />
                         <span className="text-muted-foreground">/ hora</span>
                     </div>
                 </CardContent>
+                <CardFooter>
+                    <Button onClick={handleSave} className="w-full">
+                        <Check className="mr-2" />
+                        Guardar Tarifa
+                    </Button>
+                </CardFooter>
             </GlassCard>
             <GlassCard>
                 <CardHeader>
