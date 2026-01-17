@@ -9,6 +9,8 @@ import { durationInHours, formatCurrency, formatDuration } from '@/lib/utils';
 import { Logo } from '@/components/icons/logo';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 
+export const dynamic = 'force-dynamic';
+
 export default function PrintPage() {
     const searchParams = useSearchParams();
     const [entries, setEntries] = useState<WorkEntry[]>([]);
