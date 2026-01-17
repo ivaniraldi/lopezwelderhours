@@ -116,8 +116,8 @@ export default function AppClient() {
   
   return (
     <div className="flex flex-col h-screen p-2 md:p-4">
-      <header className="flex items-center justify-between p-2 mb-4">
-        <Image src="https://i.imgur.com/I1zaXBD.png" alt="LopezWelder Logo" width={150} height={34} priority />
+      <header className="flex items-center justify-between">
+        <Image src="https://i.imgur.com/ob3PeYk.png" alt="LopezWelder Logo" width={150} height={32} priority />
       </header>
       
       <main className="flex-grow overflow-y-auto no-scrollbar pb-16 md:pb-0">
