@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { WorkEntry } from '@/lib/types';
 import { format, parseISO, isWithinInterval, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfToday, formatISO } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { ptBR } from 'date-fns/locale';
 import { durationInHours, formatCurrency, formatDuration } from '@/lib/utils';
 import { Logo } from '@/components/icons/logo';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
@@ -41,19 +41,19 @@ export default function PrintPage() {
         switch(type) {
              case 'diario':
                 periodEntries = entries.filter(e => formatISO(parseISO(e.start), { representation: 'date'}) === formatISO(todayStart, { representation: 'date'}));
-                periodLabel = `Hoy, ${format(todayStart, 'd MMMM yyyy', {locale: es})}`;
+                periodLabel = `Hoje, ${format(todayStart, 'd MMMM yyyy', {locale: ptBR})}`;
                 break;
             case 'semanal':
                 periodEntries = entries.filter(e => isWithinInterval(parseISO(e.start), {start: weekStart, end: weekEnd}));
-                periodLabel = `Semana del ${format(weekStart, 'd MMM')} al ${format(weekEnd, 'd MMM, yyyy', {locale: es})}`;
+                periodLabel = `Semana de ${format(weekStart, 'd MMM')} a ${format(weekEnd, 'd MMM, yyyy', {locale: ptBR})}`;
                 break;
             case 'quincenal':
                 periodEntries = entries.filter(e => isWithinInterval(parseISO(e.start), {start: quinceStart, end: quinceEnd}));
-                periodLabel = `Quincena del ${format(quinceStart, 'd MMM')} al ${format(quinceEnd, 'd MMM, yyyy', {locale: es})}`;
+                periodLabel = `Quinzena de ${format(quinceStart, 'd MMM')} a ${format(quinceEnd, 'd MMM, yyyy', {locale: ptBR})}`;
                 break;
             case 'mensual':
                 periodEntries = entries.filter(e => isWithinInterval(parseISO(e.start), {start: monthStart, end: monthEnd}));
-                periodLabel = `Mes de ${format(monthStart, 'MMMM yyyy', {locale: es})}`;
+                periodLabel = `Mês de ${format(monthStart, 'MMMM yyyy', {locale: ptBR})}`;
                 break;
             default:
                 periodEntries = [];
@@ -120,7 +120,7 @@ export default function PrintPage() {
                             const hours = durationInHours(start, end);
                             return (
                                 <TableRow key={entry.id}>
-                                    <TableCell>{format(start, 'EEE dd/MM', { locale: es })}</TableCell>
+                                    <TableCell>{format(start, 'EEE dd/MM', { locale: ptBR })}</TableCell>
                                     <TableCell>{format(start, 'HH:mm')}</TableCell>
                                     <TableCell>{format(end, 'HH:mm')}</TableCell>
                                     <TableCell>{formatDuration(start, end)}</TableCell>

@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger, AlertDialogFooter } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { format, parseISO, isValid, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, startOfToday, formatISO, startOfMinute } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { ptBR } from 'date-fns/locale';
 import { v4 as uuidv4 } from 'uuid';
 import { durationInHours, formatCurrency, formatDuration } from '@/lib/utils';
 import { Clock, History, BarChart2, Settings as SettingsIcon, Trash2, Edit, Plus, Share2, Download, Upload, FileDown, MoreVertical, Check } from 'lucide-react';
@@ -117,7 +117,7 @@ export default function AppClient() {
   return (
     <div className="flex flex-col h-screen p-2 md:p-4">
       <header className="flex items-center justify-between p-2 mb-4">
-        <Image src="https://i.imgur.com/I1zaXBD.png" alt="LopezWelder Logo" width={200} height={45} priority />
+        <Image src="https://i.imgur.com/I1zaXBD.png" alt="LopezWelder Logo" width={150} height={34} priority />
       </header>
       
       <main className="flex-grow overflow-y-auto no-scrollbar pb-16 md:pb-0">
@@ -278,7 +278,7 @@ const TodayTab = ({ onSave, entries, settings, now }: { onSave: (entry: WorkEntr
             <GlassCard>
                 <CardHeader>
                     <CardTitle>Resumen del Día</CardTitle>
-                    <CardDescription>{format(now, "eeee, d 'de' MMMM", { locale: es })}</CardDescription>
+                    <CardDescription>{format(now, "eeee, d 'de' MMMM", { locale: ptBR })}</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="flex justify-around text-center">
@@ -483,19 +483,19 @@ const ReportsTab = ({ entries, settings, now }: { entries: WorkEntry[], settings
     switch(type) {
         case 'diario':
             periodEntries = entries.filter(e => formatISO(parseISO(e.start), { representation: 'date'}) === formatISO(todayStart, { representation: 'date'}));
-            periodLabel = `Hoy, ${format(todayStart, 'd MMMM', {locale: es})}`;
+            periodLabel = `Hoje, ${format(todayStart, 'd MMMM', {locale: ptBR})}`;
             break;
         case 'semanal':
             periodEntries = entries.filter(e => isWithinInterval(parseISO(e.start), {start: weekStart, end: weekEnd}));
-            periodLabel = `Semana del ${format(weekStart, 'd')} al ${format(weekEnd, 'd MMMM', {locale: es})}`;
+            periodLabel = `Semana de ${format(weekStart, 'd')} a ${format(weekEnd, 'd MMMM', {locale: ptBR})}`;
             break;
         case 'quincenal':
             periodEntries = entries.filter(e => isWithinInterval(parseISO(e.start), {start: quinceStart, end: quinceEnd}));
-            periodLabel = `Quincena del ${format(quinceStart, 'd')} al ${format(quinceEnd, 'd MMMM', {locale: es})}`;
+            periodLabel = `Quinzena de ${format(quinceStart, 'd')} a ${format(quinceEnd, 'd MMMM', {locale: ptBR})}`;
             break;
         case 'mensual':
             periodEntries = entries.filter(e => isWithinInterval(parseISO(e.start), {start: monthStart, end: monthEnd}));
-            periodLabel = `Mes de ${format(monthStart, 'MMMM yyyy', {locale: es})}`;
+            periodLabel = `Mês de ${format(monthStart, 'MMMM yyyy', {locale: ptBR})}`;
             break;
         default:
             periodEntries = [];
@@ -511,7 +511,7 @@ const ReportsTab = ({ entries, settings, now }: { entries: WorkEntry[], settings
   const { totalHours, totalEarnings, periodLabel } = getReportData(reportType);
   
   const handleShare = () => {
-    const reportText = `*Resumen ${reportType} de LopezWelder*\n_${periodLabel}_\n\n*Horas Totales:* ${totalHours.toFixed(2)}h\n*Ganancias Totales:* ${formatCurrency(totalEarnings)}\n\n¡Un saludo!`;
+    const reportText = `*Resumo ${reportType} da LopezWelder*\n_${periodLabel}_\n\n*Horas Totais:* ${totalHours.toFixed(2)}h\n*Ganhos Totais:* ${formatCurrency(totalEarnings)}\n\nSaudações!`;
     const whatsappUrl = `https://wa.me/5548991590325?text=${encodeURIComponent(reportText)}`;
     window.open(whatsappUrl, '_blank');
   };

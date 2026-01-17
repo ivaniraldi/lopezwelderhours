@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster"
 import './globals.css';
 
 const APP_NAME = "LopezWelder";
-const APP_DESCRIPTION = "App para registro de horas de trabajo para soldadores.";
+const APP_DESCRIPTION = "Aplicativo para registro de horas de trabalho para soldadores.";
 
 export const metadata: Metadata = {
   title: APP_NAME,
@@ -33,7 +33,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es" className="dark">
+    <html lang="pt-BR" className="dark">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
