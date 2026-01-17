@@ -120,7 +120,7 @@ export default function AppClient() {
         <Image src="https://i.imgur.com/ob3PeYk.png" alt="LopezWelder Logo" width={150} height={32} priority />
       </header>
       
-      <main className="flex-grow overflow-y-auto no-scrollbar pb-16 md:pb-0">
+      <main className="flex-grow overflow-y-auto no-scrollbar pb-16 md:pb-0" >
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="hidden md:grid w-full grid-cols-4 bg-black/20 backdrop-blur-md border border-white/10">
                 {TABS.map(tab => <TabsTrigger key={tab.name} value={tab.name}>{tab.name}</TabsTrigger>)}
