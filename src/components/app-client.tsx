@@ -21,6 +21,7 @@ import { Logo } from '@/components/icons/logo';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import Link from 'next/link';
 import { Skeleton } from './ui/skeleton';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 // Polyfill for uuid if not globally available
 if (typeof window !== 'undefined' && !window.crypto) {
