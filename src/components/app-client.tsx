@@ -40,9 +40,10 @@ export default function AppClient() {
   const [entries, setEntries] = useLocalStorage<WorkEntry[]>('lopez-welder-entries', []);
   const [settings, setSettings] = useLocalStorage<Settings>('lopez-welder-settings', { hourlyRate: 0 });
   const [activeJob, setActiveJob] = useLocalStorage<WorkEntry | null>('lopez-welder-active-job', null);
-  const [now, setNow] = useState(new Date());
+  const [now, setNow] = useState<Date | null>(null);
 
   useEffect(() => {
+    setNow(new Date());
     const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
@@ -127,7 +128,7 @@ export default function AppClient() {
   const TABS = [
     { name: 'Hoy', icon: Clock, content: <TodayTab activeJob={activeJob} now={now} onStart={handleStart} onEnd={handleEnd} entries={sortedEntries} settings={settings} /> },
     { name: 'Historial', icon: History, content: <HistoryTab entries={sortedEntries} onDelete={handleDelete} onSave={handleSaveEntry} settings={settings} /> },
-    { name: 'Reportes', icon: BarChart2, content: <ReportsTab entries={sortedEntries} settings={settings} /> },
+    { name: 'Reportes', icon: BarChart2, content: <ReportsTab entries={sortedEntries} settings={settings} now={now} /> },
     { name: 'Ajustes', icon: SettingsIcon, content: <SettingsTab settings={settings} setSettings={setSettings} onExport={handleExport} onImport={handleImport} /> },
   ];
   
@@ -170,25 +171,25 @@ export default function AppClient() {
   );
 }
 
-const TodayTab = ({ activeJob, now, onStart, onEnd, entries, settings }: { activeJob: WorkEntry | null, now: Date, onStart: () => void, onEnd: () => void, entries: WorkEntry[], settings: Settings }) => {
-    const todayEntries = entries.filter(e => format(parseISO(e.start), 'yyyy-MM-dd') === format(now, 'yyyy-MM-dd'));
+const TodayTab = ({ activeJob, now, onStart, onEnd, entries, settings }: { activeJob: WorkEntry | null, now: Date | null, onStart: () => void, onEnd: () => void, entries: WorkEntry[], settings: Settings }) => {
+    const todayEntries = entries.filter(e => now && format(parseISO(e.start), 'yyyy-MM-dd') === format(now, 'yyyy-MM-dd'));
     const totalHoursToday = todayEntries.reduce((acc, e) => acc + durationInHours(parseISO(e.start), parseISO(e.end)), 0);
 
     return (
         <div className="space-y-4">
             <GlassCard>
                 <CardHeader>
-                    <CardTitle className="text-center text-lg font-medium">{format(now, "eeee, d 'de' MMMM", { locale: es })}</CardTitle>
+                    <CardTitle className="text-center text-lg font-medium">{now ? format(now, "eeee, d 'de' MMMM", { locale: es }) : <>&nbsp;</>}</CardTitle>
                 </CardHeader>
                 <CardContent className="flex flex-col items-center justify-center gap-4">
                     <div className="text-6xl font-bold font-mono text-white">
-                        {format(now, "HH:mm:ss")}
+                        {now ? format(now, "HH:mm:ss") : "00:00:00"}
                     </div>
                     {activeJob ? (
                         <div className="text-center">
                             <p className="text-accent">Jornada en curso</p>
                             <p className="text-sm text-muted-foreground">Iniciada a las {format(parseISO(activeJob.start), "HH:mm")}</p>
-                            <p className="text-lg font-semibold mt-2">{formatDuration(parseISO(activeJob.start), now)}</p>
+                            <p className="text-lg font-semibold mt-2">{now ? formatDuration(parseISO(activeJob.start), now) : '...'}</p>
                         </div>
                     ) : (
                         <p className="text-muted-foreground">No hay jornada activa</p>
@@ -368,21 +369,25 @@ const EditEntryDialog = ({ entry, onSave, triggerButton }: { entry?: WorkEntry, 
     );
 };
 
-const ReportsTab = ({ entries, settings }: { entries: WorkEntry[], settings: Settings }) => {
+const ReportsTab = ({ entries, settings, now: propNow }: { entries: WorkEntry[], settings: Settings, now: Date | null }) => {
   const [reportType, setReportType] = useState('semanal');
 
-  const now = new Date();
-  const weekStart = startOfWeek(now, { weekStartsOn: 1 });
-  const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
-  const monthStart = startOfMonth(now);
-  const monthEnd = endOfMonth(now);
-  const isFirstHalf = now.getDate() <= 15;
-  const quinceStart = isFirstHalf ? startOfMonth(now) : new Date(now.getFullYear(), now.getMonth(), 16);
-  const quinceEnd = isFirstHalf ? new Date(now.getFullYear(), now.getMonth(), 15, 23, 59, 59) : endOfMonth(now);
-  const todayStart = startOfToday();
-
   const getReportData = (type: string) => {
+    if (!propNow) {
+        return { totalHours: 0, totalEarnings: 0, periodLabel: 'Cargando...', periodEntries: [] };
+    }
+
+    const now = propNow;
     let periodEntries, periodLabel;
+    const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+    const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
+    const monthStart = startOfMonth(now);
+    const monthEnd = endOfMonth(now);
+    const isFirstHalf = now.getDate() <= 15;
+    const quinceStart = isFirstHalf ? startOfMonth(now) : new Date(now.getFullYear(), now.getMonth(), 16);
+    const quinceEnd = isFirstHalf ? new Date(now.getFullYear(), now.getMonth(), 15, 23, 59, 59) : endOfMonth(now);
+    const todayStart = startOfToday();
+  
     switch(type) {
         case 'diario':
             periodEntries = entries.filter(e => formatISO(parseISO(e.start), { representation: 'date'}) === formatISO(todayStart, { representation: 'date'}));
