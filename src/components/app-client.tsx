@@ -127,7 +127,7 @@ export default function AppClient() {
             </TabsList>
             {TABS.map(tab => (
               <TabsContent key={tab.name} value={tab.name} className="mt-4">
-                {tab.content}
+                 {tab.content}
               </TabsContent>
             ))}
         </Tabs>
